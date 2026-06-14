@@ -12,6 +12,8 @@ Tools:
     create_fit_card(outfit, new_item)               → str
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -41,13 +43,15 @@ def _get_groq_client():
 def get_filter_criteria_values(natural_language_query: str) -> dict:
     prompt = f"""Extract the description, size, and max_price from the following user query. If any of these parameters are not specified in the query, set them to null.
     Please return the result as a JSON object with the following format:
-    
+
     Output schema:
-    {
+    {{
         "description": str,   # e.g. "vintage graphic tee",
         "size": str | None,  # e.g. "M" or None if not specified
-        "max_price": float | None,  # e.g. 30.0 or
-    }
+        "max_price": float | None,  # e.g. 30.0 or None if not specified
+    }}
+
+    User query: {natural_language_query}
     """
 
     client = _get_groq_client()
@@ -246,5 +250,20 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     Before writing code, fill in the Tool 3 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    if not outfit or not outfit.strip():
+        return "Could not create a fit due to insufficient information."
+
+    prompt = (
+        f"Write a 2-4 sentence Instagram/TikTok caption for this thrifted outfit.\n\n"
+        f"Item: {new_item['title']} — ${new_item['price']:.2f} on {new_item['platform']}\n"
+        f"Outfit: {outfit}\n\n"
+        "Make it casual and authentic like a real OOTD post. Mention the item name, price, and platform naturally once each. Capture the outfit vibe in specific terms."
+    )
+
+    client = _get_groq_client()
+    resp = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.9,
+    )
+    return resp.choices[0].message.content

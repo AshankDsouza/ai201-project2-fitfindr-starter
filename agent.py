@@ -86,11 +86,12 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
 
 
-    # Step 4: Select the item to use (e.g., the top result).
-    #         Store it in session["selected_item"].
 
+
+    # step 1:
     new_session = _new_session(query, wardrobe)
 
+    # step 2:
     query_dict = get_filter_criteria_values(query)
 
 
@@ -103,9 +104,14 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         new_session["error"] = "Could not extract a description from the query."
         return new_session
 
+    # Step 4: Select the item to use (e.g., the top result).
+    #         Store it in session["selected_item"].
     listings = search_listings(description, size=None, max_price=None)
-
-
+    top_result = listings[0] if listings else None
+    if not top_result:
+        new_session["error"] = "No listings found matching the query criteria."
+        return new_session
+    new_session["selected_item"] = top_result
 
     """  
 
@@ -120,10 +126,16 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     Before writing code, complete the Planning Loop and State Management sections
     of planning.md — your implementation should match what you described there.
     """
-    # TODO: implement the planning loop
-    session = _new_session(query, wardrobe)
-    session["error"] = "Planning loop not yet implemented."
-    return session
+    # step 5
+    suggestion = suggest_outfit(new_session["selected_item"], wardrobe)
+    new_session["outfit_suggestion"] = suggestion
+
+    # step 6
+    fit_card = create_fit_card(new_session["outfit_suggestion"], new_session["selected_item"])
+    new_session["fit_card"] = fit_card
+
+    # step 7
+    return new_session
 
 
 # ── CLI test ──────────────────────────────────────────────────────────────────

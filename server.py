@@ -41,6 +41,9 @@ def _format_listing(item: dict) -> str:
         ]
     )
 
+@app.get("/api/health")
+def health_check():
+    return jsonify({"status": "ok"})
 
 @app.post("/api/query")
 def query():
