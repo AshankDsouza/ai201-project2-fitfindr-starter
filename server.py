@@ -49,7 +49,7 @@ def health_check():
 def query():
     body = request.get_json(silent=True) or {}
     user_query = (body.get("query") or "").strip()
-    wardrobe_choice = body.get("wardrobe", "Example wardrobe")
+    wardrobe_choice = body.get("wardrobe", "Empty wardrobe (new user)")
 
     # 1. Guard against an empty query.
     if not user_query:
@@ -76,7 +76,7 @@ def query():
 
     return jsonify(
         {
-            "listing": _format_listing(session.get("selected_item")),
+            "listing": _format_listing(session.get("selected_item") or {}),
             "outfit": session.get("outfit_suggestion") or "",
             "fitCard": session.get("fit_card") or "",
         }

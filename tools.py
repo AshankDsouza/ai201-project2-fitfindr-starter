@@ -183,21 +183,19 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     context_blocks.append("The clothing items in the user's wardrobe are:")
 
+    print("wardrobe items:", wardrobe['items'])  # Debug print to check wardrobe contents
+
     for idx, item in enumerate(wardrobe['items']):
         block = (
             f"Item {idx + 1}:\n"
-            f"- Title: {item['title']}\n"
-            f"- Description: {item['description']}\n"
+            f"- Name: {item['name']}\n"
             f"- Category: {item['category']}\n"
-            f"- Style Tags: {', '.join(item['style_tags'])}\n"
-            f"- Size: {item['size']}\n"
-            f"- Condition: {item['condition']}\n"
-            f"- Price: ${item['price']:.2f}\n"
             f"- Colors: {', '.join(item['colors'])}\n"
-            f"- Brand: {item['brand']}\n"
-            f"- Platform: {item['platform']}"
+            f"- Style Tags: {', '.join(item['style_tags'])}\n"
+            f"- Notes: {item.get('notes') or 'N/A'}"
         )
         context_blocks.append(block)
+
     context = "\n\n".join(context_blocks)
 
     question = "Based on the users existing clothing items and the new item, suggest 1-2 complete outfits. Be specific about which items to pair together and why, and mention the vibe or occasion each outfit suits."
@@ -218,7 +216,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     )
     
 
-    return resp
+    return resp.choices[0].message.content
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -254,7 +252,7 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         return "Could not create a fit due to insufficient information."
 
     prompt = (
-        f"Write a 2-4 sentence Instagram/TikTok caption for this thrifted outfit.\n\n"
+        f"Write a 2-4 sentence, short, shareable description of a complete outfit — the kind of thing someone would caption an Instagram post with.\n\n"
         f"Item: {new_item['title']} — ${new_item['price']:.2f} on {new_item['platform']}\n"
         f"Outfit: {outfit}\n\n"
         "Make it casual and authentic like a real OOTD post. Mention the item name, price, and platform naturally once each. Capture the outfit vibe in specific terms."
