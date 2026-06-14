@@ -90,7 +90,7 @@ export default function App() {
       <div className="panels">
         <Panel title="🛍️ Top listing found" text={result.listing} />
         <Panel title="👗 Outfit idea" text={result.outfit} />
-        <Panel title="✨ Your fit card" text={result.fitCard} />
+        <FitCardPanel text={result.fitCard} />
       </div>
 
       <div className="examples">
@@ -119,6 +119,65 @@ function Panel({ title, text }) {
     <div className="panel">
       <span className="label">{title}</span>
       <textarea readOnly value={text} rows={8} />
+    </div>
+  );
+}
+
+function FitCardPanel({ text }) {
+  const [image, setImage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const hasContent = text.trim().length > 0;
+  const showImageBox = loading || image || error;
+
+  async function generateImage() {
+    setLoading(true);
+    setError("");
+    setImage("");
+    try {
+      const resp = await fetch(
+        `/api/fit-image?description=${encodeURIComponent(text)}`
+      );
+      const data = await resp.json();
+      if (!resp.ok || data.error) {
+        setError(data.error || "Failed to generate image.");
+      } else {
+        setImage(data.image);
+      }
+    } catch (err) {
+      setError(`Request failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="panel fit-card-panel">
+      <div className="fit-card-header">
+        <span className="label">✨ Your fit card</span>
+        <button
+          className="generate-image"
+          onClick={generateImage}
+          disabled={!hasContent || loading}
+        >
+          {loading ? "Generating…" : "Generate fit image"}
+        </button>
+      </div>
+      <div className="fit-card-body">
+        <textarea readOnly value={text} rows={8} />
+        {showImageBox && (
+          <div className={`image-box${loading ? " loading" : ""}`}>
+            {loading ? (
+              <div className="spinner" />
+            ) : image ? (
+              <img src={image} alt="Generated fit" />
+            ) : (
+              <span className="image-error">{error}</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -13,8 +13,15 @@ Then start the React app in web/ (see web/README.md). The Vite dev server
 proxies /api requests here on port 5001.
 """
 
+import base64
+import glob
+import os
+import shutil
+import tempfile
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from icrawler.builtin import BingImageCrawler
 
 from agent import run_agent
 from utils.data_loader import get_example_wardrobe, get_empty_wardrobe
@@ -44,6 +51,41 @@ def _format_listing(item: dict) -> str:
 @app.get("/api/health")
 def health_check():
     return jsonify({"status": "ok"})
+
+
+@app.get("/api/fit-image")
+def fit_image():
+    """Crawl the web for an image matching the fit card text and return it.
+
+    Uses icrawler's BingImageCrawler to download the top image into a
+    temporary directory, then returns it inline as a base64 data URL.
+    (Bing is used instead of Google because icrawler's Google parser no
+    longer works against Google's current page layout.)
+    """
+    description = (request.args.get("description") or "").strip()
+    if not description:
+        return jsonify({"error": "No description provided."}), 400
+
+    out_dir = tempfile.mkdtemp(prefix="fitimg_")
+    try:
+        crawler = BingImageCrawler(storage={"root_dir": out_dir})
+        crawler.crawl(keyword=description, max_num=1)
+
+        files = [f for f in glob.glob(os.path.join(out_dir, "*")) if os.path.isfile(f)]
+        if not files:
+            return jsonify({"error": "No images found."}), 404
+
+        path = files[0]
+        ext = (os.path.splitext(path)[1].lstrip(".").lower()) or "jpeg"
+        mime = "jpeg" if ext == "jpg" else ext
+        with open(path, "rb") as fh:
+            b64 = base64.b64encode(fh.read()).decode("utf-8")
+
+        return jsonify({"image": f"data:image/{mime};base64,{b64}"})
+    except Exception as e:  # noqa: BLE001 — surface any error to the client
+        return jsonify({"error": str(e)}), 500
+    finally:
+        shutil.rmtree(out_dir, ignore_errors=True)
 
 @app.post("/api/query")
 def query():
