@@ -18,7 +18,12 @@ Usage (once implemented):
     print(result["error"])   # None on success
 """
 
-from tools import search_listings, suggest_outfit, create_fit_card
+import json
+import re
+
+from tools import search_listings, suggest_outfit, create_fit_card, get_filter_criteria_values
+GROQ_MODEL = "llama-3.3-70b-versatile"
+from groq import Groq
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -77,9 +82,32 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                 If no results: set session["error"] to a helpful message and
                 return the session early. Do NOT proceed to suggest_outfit
                 with empty input.
+    """
 
-        Step 4: Select the item to use (e.g., the top result).
-                Store it in session["selected_item"].
+
+
+    # Step 4: Select the item to use (e.g., the top result).
+    #         Store it in session["selected_item"].
+
+    new_session = _new_session(query, wardrobe)
+
+    query_dict = get_filter_criteria_values(query)
+
+
+
+    description = query_dict.get("description")
+    size = query_dict.get("size")
+    max_price = query_dict.get("max_price")
+
+    if not description:
+        new_session["error"] = "Could not extract a description from the query."
+        return new_session
+
+    listings = search_listings(description, size=None, max_price=None)
+
+
+
+    """  
 
         Step 5: Call suggest_outfit() with the selected item and wardrobe.
                 Store the result in session["outfit_suggestion"].

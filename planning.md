@@ -15,20 +15,23 @@ You must have at least 3 tools. The three required tools are listed — add any 
 ### Tool 1: search_listings
 
 **What it does:**
-<!-- Describe what this tool does in 1–2 sentences -->
+This tool searches through the listings of clothes available (available using load_listings) given a criteria. 
 
 **Input parameters:**
 <!-- List each parameter, its type, and what it represents -->
-- `description` (str): ...
-- `size` (str): ...
-- `max_price` (float): ...
+- `description` (str): a text description of the clothing item. 
+- `size` (str): clothes size in various different metrics. 
+- `max_price` (float): price of the item
 
 **What it returns:**
 <!-- Describe the return value — what fields does a result contain? -->
+Each listing dict has the following fields:
+        id, title, description, category, style_tags (list), size,
+        condition, price (float), colors (list), brand, platform
 
 **What happens if it fails or returns nothing:**
 <!-- What should the agent do if no listings match? -->
-
+If no listings match then the agent should return "No listings found". 
 ---
 
 ### Tool 2: suggest_outfit
@@ -45,8 +48,8 @@ You must have at least 3 tools. The three required tools are listed — add any 
 <!-- Describe the return value -->
 
 **What happens if it fails or returns nothing:**
-<!-- What should the agent do if the wardrobe is empty or no outfit can be suggested? -->
-
+Give a generic suggestion like: 
+Black and white is a safe choice. Other color pairings should be based on common color theory rules
 ---
 
 ### Tool 3: create_fit_card
@@ -92,9 +95,9 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| search_listings | No results match the query | |
-| suggest_outfit | Wardrobe is empty | |
-| create_fit_card | Outfit input is missing or incomplete | |
+| search_listings | No results match the query | No listings found |
+| suggest_outfit | Wardrobe is empty | Black and white is a safe choice. Other color pairings should be based on common color theory rules |
+| create_fit_card | Outfit input is missing or incomplete | Could not create a fit due to insufficient information |
 
 ---
 

@@ -12,7 +12,9 @@ Tools:
     create_fit_card(outfit, new_item)               → str
 """
 
+import json
 import os
+import re
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -20,6 +22,8 @@ from groq import Groq
 from utils.data_loader import load_listings
 
 load_dotenv()
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
 
 
 # ── Groq client ───────────────────────────────────────────────────────────────
@@ -33,6 +37,39 @@ def _get_groq_client():
         )
     return Groq(api_key=api_key)
 
+# ── Tool 0: get filter criteria values ─────────────────────────────────────────────────
+def get_filter_criteria_values(natural_language_query: str) -> dict:
+    prompt = f"""Extract the description, size, and max_price from the following user query. If any of these parameters are not specified in the query, set them to null.
+    Please return the result as a JSON object with the following format:
+    
+    Output schema:
+    {
+        "description": str,   # e.g. "vintage graphic tee",
+        "size": str | None,  # e.g. "M" or None if not specified
+        "max_price": float | None,  # e.g. 30.0 or
+    }
+    """
+
+    client = _get_groq_client()
+    resp = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.1,
+        response_format={"type": "json_object"},
+    )
+
+    content = resp.choices[0].message.content
+
+    try:
+        query_dict = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        # Fallback: pull the first {...} block out of the text and parse it.
+        match = re.search(r"\{.*\}", content or "", re.DOTALL)
+        query_dict = json.loads(match.group(0)) if match else {}
+    
+    return query_dict
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
 
@@ -70,7 +107,21 @@ def search_listings(
     Before writing code, fill in the Tool 1 section of planning.md.
     """
     # Replace this with your implementation
-    return []
+
+    listings = load_listings()
+    if size is not None:
+        listings = [listing for listing in listings if listing['size'] == size]
+    if max_price is not None:
+        listings = [listing for listing in listings if listing['price'] <= max_price]
+
+    scored_listings = []
+    for listing in listings:
+        score = sum(1 for keyword in description.split() if keyword.lower() in listing['description'].lower())
+        if score > 0:
+            scored_listings.append((score, listing))
+
+    scored_listings.sort(key=lambda x: x[0], reverse=True)
+    return [listing for _, listing in scored_listings]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -100,8 +151,70 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Before writing code, fill in the Tool 2 section of planning.md.
     """
+
+
+
     # Replace this with your implementation
-    return ""
+    if not wardrobe['items']:
+        # Call LLM with general styling advice prompt
+        return "Black and white is a safe choice. Other color pairings should be based on common color theory rules."
+
+
+    SYSTEM_PROMPT =  "Given a thrifted item and the user's wardrobe, suggest 1–2 complete outfits."
+    
+    context_blocks = ["The new item the user is considering buying is:"]
+    context_blocks.append(
+        f"- Title: {new_item['title']}\n"
+        f"- Description: {new_item['description']}\n"
+        f"- Category: {new_item['category']}\n"
+        f"- Style Tags: {', '.join(new_item['style_tags'])}\n"
+        f"- Size: {new_item['size']}\n"
+        f"- Condition: {new_item['condition']}\n"
+        f"- Price: ${new_item['price']:.2f}\n"
+        f"- Colors: {', '.join(new_item['colors'])}\n"
+        f"- Brand: {new_item['brand']}\n"
+        f"- Platform: {new_item['platform']}"
+    )
+
+
+    context_blocks.append("The clothing items in the user's wardrobe are:")
+
+    for idx, item in enumerate(wardrobe['items']):
+        block = (
+            f"Item {idx + 1}:\n"
+            f"- Title: {item['title']}\n"
+            f"- Description: {item['description']}\n"
+            f"- Category: {item['category']}\n"
+            f"- Style Tags: {', '.join(item['style_tags'])}\n"
+            f"- Size: {item['size']}\n"
+            f"- Condition: {item['condition']}\n"
+            f"- Price: ${item['price']:.2f}\n"
+            f"- Colors: {', '.join(item['colors'])}\n"
+            f"- Brand: {item['brand']}\n"
+            f"- Platform: {item['platform']}"
+        )
+        context_blocks.append(block)
+    context = "\n\n".join(context_blocks)
+
+    question = "Based on the users existing clothing items and the new item, suggest 1-2 complete outfits. Be specific about which items to pair together and why, and mention the vibe or occasion each outfit suits."
+
+    user_prompt = (
+        f"Context passages:\n\n{context}\n\n"
+        f"Question: {question}\n\n"
+    )
+
+    client = _get_groq_client()
+    resp = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.1,
+    )
+    
+
+    return resp
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
