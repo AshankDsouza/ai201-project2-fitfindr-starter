@@ -130,7 +130,7 @@ def search_listings(
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
 
-def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
+def suggest_outfit(new_item: dict | None, wardrobe: dict) -> str:
     """
     Given a thrifted item and the user's wardrobe, suggest 1–2 complete outfits.
 
@@ -159,7 +159,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
 
     # Replace this with your implementation
-    if not wardrobe['items']:
+    if not wardrobe['items'] or not new_item:
         # Call LLM with general styling advice prompt
         return "Black and white is a safe choice. Other color pairings should be based on common color theory rules."
 

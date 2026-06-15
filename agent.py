@@ -110,6 +110,8 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     top_result = listings[0] if listings else None
     if not top_result:
         new_session["error"] = "No listings found matching the query criteria."
+        suggestion = suggest_outfit(None, wardrobe)
+        new_session["outfit_suggestion"] = suggestion
         return new_session
     new_session["selected_item"] = top_result
 

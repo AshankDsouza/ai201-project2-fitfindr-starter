@@ -114,7 +114,7 @@ def query():
 
     # 4. Map the session to the three panels.
     if session.get("error"):
-        return jsonify({"listing": session["error"], "outfit": "", "fitCard": ""})
+        return jsonify({"listing": session["error"], "outfit": session.get("outfit_suggestion") or "", "fitCard": session.get("fit_card") or ""})
 
     return jsonify(
         {

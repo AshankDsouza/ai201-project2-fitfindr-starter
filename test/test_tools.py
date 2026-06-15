@@ -48,6 +48,16 @@ def test_search_price_filter():
     assert all(item["price"] <= 10 for item in results)
 
 
+def test_suggest_outfit_with_empty_new_item():
+    empty_new_item = None
+    suggestion = suggest_outfit(empty_new_item, get_empty_wardrobe())
+
+    assert suggestion is not None
+    # suggestion should be a non-empty string:
+    assert isinstance(suggestion, str)
+    assert len(suggestion) > 0
+    assert suggestion == "Black and white is a safe choice. Other color pairings should be based on common color theory rules."
+
 def test_suggest_outfit_with_empty_wardrobe():
     results = search_listings('vintage graphic tee', size=None, max_price=50)
     suggestion = suggest_outfit(results[0], get_empty_wardrobe())
